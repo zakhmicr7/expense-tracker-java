@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header span { font-size: 1.5rem; }
+
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* Summary row */
+    .summary {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      flex: 1;
+      min-width: 140px;
+      background: #f7f8fa;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+    .stat-label { font-size: .75rem; color: #888; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; margin-top: .2rem; color: #1a1a2e; }
+    .stat-value.green { color: #16a34a; }
+
+    /* Form */
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: .75rem;
+    }
+    form .full { grid-column: 1 / -1; }
+    label { font-size: .8rem; color: #666; display: block; margin-bottom: .3rem; }
+    input, select, textarea {
+      width: 100%;
+      padding: .55rem .75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: .95rem;
+      background: #fafafa;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #6366f1;
+      background: #fff;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    button[type="submit"] {
+      grid-column: 1 / -1;
+      padding: .65rem 1rem;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    button[type="submit"]:hover { background: #4f46e5; }
+    button[type="submit"]:active { background: #4338ca; }
+
+    /* Error message */
+    #form-error {
+      grid-column: 1 / -1;
+      color: #dc2626;
+      font-size: .85rem;
+      display: none;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    thead th {
+      text-align: left;
+      padding: .6rem .75rem;
+      font-size: .75rem;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    tbody tr { border-bottom: 1px solid #f4f4f4; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+    tbody td { padding: .7rem .75rem; vertical-align: middle; }
+    td.amount { font-weight: 700; color: #dc2626; }
+    td.date { color: #888; font-size: .85rem; }
+    td.desc { color: #555; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .badge {
+      display: inline-block;
+      padding: .2rem .6rem;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-food       { background: #fef3c7; color: #92400e; }
+    .badge-transport  { background: #dbeafe; color: #1e40af; }
+    .badge-housing    { background: #ede9fe; color: #5b21b6; }
+    .badge-health     { background: #d1fae5; color: #065f46; }
+    .badge-entertainment { background: #fce7f3; color: #9d174d; }
+    .badge-shopping   { background: #ffedd5; color: #9a3412; }
+    .badge-education  { background: #e0f2fe; color: #0c4a6e; }
+    .badge-other      { background: #f3f4f6; color: #374151; }
+
+    .btn-delete {
+      background: none;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      padding: .3rem .65rem;
+      border-radius: 6px;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: background .1s, color .1s;
+    }
+    .btn-delete:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #aaa;
+    }
+    .empty-state p { margin-top: .5rem; font-size: .9rem; }
+
+    #loading { text-align: center; padding: 2rem; color: #aaa; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span>💸</span>
+  <h1>Expense Tracker</h1>
+</header>
+
+<main>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2>Summary</h2>
+    <div class="summary">
+      <div class="stat">
+        <div class="stat-label">Total Expenses</div>
+        <div class="stat-value" id="stat-total">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Number of Records</div>
+        <div class="stat-value" id="stat-count">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Top Category</div>
+        <div class="stat-value" id="stat-category" style="font-size:1.1rem">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Expense -->
+  <div class="card">
+    <h2>Add Expense</h2>
+    <form id="expense-form">
+      <div>
+        <label for="amount">Amount ($) *</label>
+        <input type="number" id="amount" min="0.01" step="0.01" placeholder="0.00" required />
+      </div>
+      <div>
+        <label for="category">Category *</label>
+        <select id="category" required>
+          <option value="">Select…</option>
+          <option value="food">Food</option>
+          <option value="transport">Transport</option>
+          <option value="housing">Housing</option>
+          <option value="health">Health</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="shopping">Shopping</option>
+          <option value="education">Education</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label for="date">Date *</label>
+        <input type="date" id="date" required />
+      </div>
+      <div class="full">
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="What was this expense for?"></textarea>
+      </div>
+      <span id="form-error"></span>
+      <button type="submit">+ Add Expense</button>
+    </form>
+  </div>
+
+  <!-- Expenses List -->
+  <div class="card">
+    <h2>Expenses</h2>
+    <div id="loading">Loading…</div>
+    <div class="table-wrap" id="table-wrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="expenses-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div style="font-size:2.5rem">📭</div>
+      <p>No expenses yet. Add one above!</p>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = '/api/expenses';
+
+  // Set date input to today by default
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+  async function fetchExpenses() {
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      renderExpenses(data);
+      updateSummary(data);
+    } catch (e) {
+      document.getElementById('loading').textContent = 'Failed to load expenses.';
+    }
+  }
+
+  function renderExpenses(expenses) {
+    const loading    = document.getElementById('loading');
+    const tableWrap  = document.getElementById('table-wrap');
+    const emptyState = document.getElementById('empty-state');
+    const tbody      = document.getElementById('expenses-body');
+
+    loading.style.display = 'none';
+
+    if (expenses.length === 0) {
+      tableWrap.style.display  = 'none';
+      emptyState.style.display = 'block';
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    tableWrap.style.display  = 'block';
+
+    tbody.innerHTML = expenses.map(e => `
+      <tr data-id="${e.id}">
+        <td class="date">${formatDate(e.date)}</td>
+        <td><span class="badge badge-${e.category}">${capitalize(e.category)}</span></td>
+        <td class="desc" title="${esc(e.description || '')}">${esc(e.description || '—')}</td>
+        <td class="amount">$${Number(e.amount).toFixed(2)}</td>
+        <td><button class="btn-delete" onclick="deleteExpense(${e.id}, this)">Delete</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function updateSummary(expenses) {
+    const total = expenses.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('stat-total').textContent = '$' + total.toFixed(2);
+    document.getElementById('stat-count').textContent = expenses.length;
+
+    if (expenses.length === 0) {
+      document.getElementById('stat-category').textContent = '—';
+      return;
+    }
+
+    const counts = {};
+    expenses.forEach(e => counts[e.category] = (counts[e.category] || 0) + 1);
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    document.getElementById('stat-category').textContent = capitalize(top);
+  }
+
+  document.getElementById('expense-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('form-error');
+    errEl.style.display = 'none';
+
+    const expense = {
+      amount:      parseFloat(document.getElementById('amount').value),
+      category:    document.getElementById('category').value,
+      description: document.getElementById('description').value.trim(),
+      date:        document.getElementById('date').value
+    };
+
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expense)
+      });
+      if (!res.ok) throw new Error('Server error');
+      document.getElementById('expense-form').reset();
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+      fetchExpenses();
+    } catch (err) {
+      errEl.textContent = 'Failed to add expense. Please try again.';
+      errEl.style.display = 'block';
+    }
+  });
+
+  async function deleteExpense(id, btn) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      fetchExpenses();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Delete';
+      alert('Failed to delete expense.');
+    }
+  }
+
+  function formatDate(dateStr) {
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function capitalize(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  }
+
+  function esc(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  fetchExpenses();
+</script>
+</body>
+</html>
